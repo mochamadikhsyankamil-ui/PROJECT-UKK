@@ -12,10 +12,24 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class LendingController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // Menyajikan data lengkap dengan timestamp ascending (yang terbaru di atas)
-        $lendings = Lending::with(['item', 'user'])->latest()->get();
+        $query = Lending::with(['item', 'user']);
+
+        // 🔧 FILTER BERDASARKAN TANGGAL
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('created_at', [
+                $request->start_date . ' 00:00:00',
+                $request->end_date . ' 23:59:59'
+            ]);
+        } elseif ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        } elseif ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->end_date);
+        }
+
+        $lendings = $query->latest()->get();
         return view('operator.lendings.index', compact('lendings'));
     }
 
